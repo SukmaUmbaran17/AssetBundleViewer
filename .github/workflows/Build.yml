@@ -15,7 +15,7 @@ jobs:
           ref: master
           fetch-depth: 1
 
-      # 2. Jalankan Compiler Game-CI Unity (Konfigurasi Paling Steril)
+      # 2. Jalankan Compiler Game-CI Unity (Konfigurasi Paling Ringkas)
       - name: Build Unity Module
         uses: game-ci/unity-builder@v4
         env:
@@ -24,9 +24,9 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: Android
-          # PERBAIKAN MUTLAK: Kosongkan projectPath, jangan diisi "." atau ${{ github.workspace }}
-          # Karena secara default, jika dikosongkan, Game-CI akan otomatis membaca halaman root dengan benar
           androidExportType: androidStudioProject 
+          # PENTING: projectPath dihapus total agar system Docker Game-CI 
+          # secara otomatis mendeteksi direktori root kerja Linux ($PWD) 
 
       # 3. Ambil Folder Hasil Build (unityLibrary) dan simpan sebagai Artifacts
       - name: Upload Unity Library Artifact
