@@ -27,7 +27,7 @@ jobs:
             echo "m_EditorVersion: 2021.3.0f1" > ProjectSettings/ProjectVersion.txt
           fi
 
-      # 3. Jalankan Ekspor Unity ke format Modul Android Studio (Gradle Project)
+      # 3. JALANKAN TRICK MEMINTA FILE .ALF (Sengaja digagalkan untuk lisensi)
       - name: Export Unity to Android Project
         uses: game-ci/unity-builder@v4
         env:
@@ -38,34 +38,16 @@ jobs:
           targetPlatform: Android
           androidExportType: androidStudioProject
           allowDirtyBuild: true
-          # PERBAIKAN MUTLAK: Baris projectPath dihapus total agar system Docker 
-          # secara otomatis mengambil folder root terluar tanpa membuat jalur bayangan.
+          # KUNCI UTAMA: Parameter ini memaksa Unity membatalkan build 
+          # dan langsung memuntahkan file request .alf ke folder artifacts
+          versioning: None 
 
-      # 4. TRIK PENYATUAN: Pindahkan folder unityLibrary hasil build ke dalam folder project Android kamu
-      - name: Inject Unity Library to Android Tools
-        run: |
-          echo "Menyuntikkan modul Unity Viewer ke dalam project Android Studio..."
-          mkdir -p AndroidProject/
-          # Memindahkan folder 'unityLibrary' hasil ekspor Game-CI ke dalam subfolder AndroidProject
-          mv build/Android/unityLibrary AndroidProject/unityLibrary
-          
-      # 5. Pasang Java Development Kit (JDK) untuk Compiler Android Studio
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      # 6. Jalankan Proses Compile Final APK menggunakan Gradle
-      - name: Build Android APK
-        run: |
-          cd AndroidProject
-          chmod +x gradlew
-          ./gradlew assembleDebug
-
-      # 7. Unggah File APK Matang yang sudah tertanam Fitur Preview Renderer
-      - name: Upload Final APK Artifact
+      # 4. AMBIL FILE .ALF DAN KLASIFIKASIKAN JADI ARTIFACTS (Hanya berjalan jika langkah 3 selesai/gagal)
+      - name: Upload Unity Activation File (.alf)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Final-Tools-With-Preview-APK
-          path: AndroidProject/app/build/outputs/apk/debug/app-debug.apk
+          name: Unity-Activation-File
+          path: |
+            *.alf
+            build/**/*.alf
