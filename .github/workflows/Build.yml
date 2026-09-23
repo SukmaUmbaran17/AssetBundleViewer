@@ -8,18 +8,26 @@ jobs:
     name: Export Unity Project to Android Library
     runs-on: ubuntu-latest
     steps:
-      # 1. PERBAIKAN: Memaksa checkout membaca branch master dan membersihkan workspace
+      # 1. Ambil kode dari Repositori Hasil Fork secara eksplisit
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          ref: master        # <--- Memastikan mengambil branch master bawaan repo aslinya
+          ref: master        # Memastikan mengambil branch master bawaan repo aslinya
           fetch-depth: 0
 
-      # 2. DEBUG LANGKAH (Opsional): Menampilkan daftar file untuk verifikasi di log
-      - name: List Files for Verification
-        run: ls -la
+      # 2. Langkah Pembersihan & Debug Jalur Kerja Server
+      - name: Verify Project Structure
+        run: |
+          echo "Current Workspace Path: $GITHUB_WORKSPACE"
+          ls -la $GITHUB_WORKSPACE
+          if [ -f "$GITHUB_WORKSPACE/ProjectSettings/ProjectVersion.txt" ]; then
+            echo "ProjectVersion.txt FOUND!"
+            cat "$GITHUB_WORKSPACE/ProjectSettings/ProjectVersion.txt"
+          else
+            echo "ProjectVersion.txt NOT FOUND AT ROOT!"
+          fi
 
-      # 3. Jalankan Compiler Game-CI Unity
+      # 3. Jalankan Compiler Game-CI Unity dengan Absolut Workspace Path
       - name: Build Unity Module
         uses: game-ci/unity-builder@v4
         env:
@@ -28,7 +36,8 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: Android
-          projectPath: .                  # <--- Menegaskan pencarian di folder utama hasil checkout
+          # PERBAIKAN UTAMA: Menggunakan variabel lingkungan absolut dari runner GitHub
+          projectPath: ${{ github.workspace }}
           androidExportType: androidStudioProject 
 
       # 4. Ambil Folder Hasil Build (unityLibrary) dan simpan sebagai Artifacts
