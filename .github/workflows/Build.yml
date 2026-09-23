@@ -15,7 +15,7 @@ jobs:
           ref: master
           fetch-depth: 0
 
-      # 2. TRIK KHUSUS: Mengamankan struktur folder & perizinan file agar bisa diakses Docker
+      # 2. TRIK KHUSUS: Mengamankan struktur folder agar bisa diakses Docker
       - name: Fix Directory Permissions & Force Root Path
         run: |
           echo "Memperbaiki perizinan sistem berkas untuk Docker container..."
@@ -24,11 +24,11 @@ jobs:
           if [ -f "ProjectSettings/ProjectVersion.txt" ]; then
             echo "ProjectVersion.txt ditemukan secara fisik!"
           else
-            echo "ProjectVersion.txt hilang, membuat file dummy darurat..."
+            echo "ProjectVersion.txt tidak ditemukan di root, menyuntikkan versi darurat..."
             echo "m_EditorVersion: 2021.3.0f1" > ProjectSettings/ProjectVersion.txt
           fi
 
-      # 3. Jalankan Compiler Game-CI Unity dengan Isolasi Direktori Kerja
+      # 3. Jalankan Compiler Game-CI Unity dengan Izin Dirty Build
       - name: Build Unity Module
         uses: game-ci/unity-builder@v4
         env:
@@ -38,7 +38,9 @@ jobs:
         with:
           targetPlatform: Android
           androidExportType: androidStudioProject
-          projectPath: ./ # Menggunakan penanda direktori lokal terisolasi secara eksplisit
+          projectPath: ./
+          # KUNCI SOLUSI: Mengizinkan kompilasi berjalan meskipun ada file buatan darurat di server
+          allowDirtyBuild: true 
 
       # 4. Ambil Folder Hasil Build (unityLibrary) dan simpan sebagai Artifacts
       - name: Upload Unity Library Artifact
