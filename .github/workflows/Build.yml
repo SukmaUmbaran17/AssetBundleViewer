@@ -8,13 +8,18 @@ jobs:
     name: Export Unity Project to Android Library
     runs-on: ubuntu-latest
     steps:
-      # 1. Ambil kode dari Repositori Hasil Fork secara eksplisit
+      # 1. PERBAIKAN: Memaksa checkout membaca branch master dan membersihkan workspace
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Mengunduh seluruh riwayat file agar tidak ada yang tertinggal
+          ref: master        # <--- Memastikan mengambil branch master bawaan repo aslinya
+          fetch-depth: 0
 
-      # 2. Jalankan Compiler Game-CI Unity
+      # 2. DEBUG LANGKAH (Opsional): Menampilkan daftar file untuk verifikasi di log
+      - name: List Files for Verification
+        run: ls -la
+
+      # 3. Jalankan Compiler Game-CI Unity
       - name: Build Unity Module
         uses: game-ci/unity-builder@v4
         env:
@@ -23,10 +28,10 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: Android
-          # PERBAIKAN: projectPath dihapus agar otomatis mendeteksi folder root repositori secara native
+          projectPath: .                  # <--- Menegaskan pencarian di folder utama hasil checkout
           androidExportType: androidStudioProject 
 
-      # 3. Ambil Folder Hasil Build (unityLibrary) dan simpan sebagai Artifacts
+      # 4. Ambil Folder Hasil Build (unityLibrary) dan simpan sebagai Artifacts
       - name: Upload Unity Library Artifact
         uses: actions/upload-artifact@v4
         with:
