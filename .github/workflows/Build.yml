@@ -8,26 +8,14 @@ jobs:
     name: Export Unity Project to Android Library
     runs-on: ubuntu-latest
     steps:
-      # 1. Ambil kode dari Repositori Hasil Fork secara eksplisit
+      # 1. Unduh kode dari branch master repositori AssetBundleViewer kamu
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          ref: master        # Memastikan mengambil branch master bawaan repo aslinya
-          fetch-depth: 0
+          ref: master
+          fetch-depth: 1
 
-      # 2. Langkah Pembersihan & Debug Jalur Kerja Server
-      - name: Verify Project Structure
-        run: |
-          echo "Current Workspace Path: $GITHUB_WORKSPACE"
-          ls -la $GITHUB_WORKSPACE
-          if [ -f "$GITHUB_WORKSPACE/ProjectSettings/ProjectVersion.txt" ]; then
-            echo "ProjectVersion.txt FOUND!"
-            cat "$GITHUB_WORKSPACE/ProjectSettings/ProjectVersion.txt"
-          else
-            echo "ProjectVersion.txt NOT FOUND AT ROOT!"
-          fi
-
-      # 3. Jalankan Compiler Game-CI Unity dengan Absolut Workspace Path
+      # 2. Jalankan Compiler Game-CI Unity (Konfigurasi Paling Steril)
       - name: Build Unity Module
         uses: game-ci/unity-builder@v4
         env:
@@ -36,11 +24,11 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: Android
-          # PERBAIKAN UTAMA: Menggunakan variabel lingkungan absolut dari runner GitHub
-          projectPath: ${{ github.workspace }}
+          # PERBAIKAN MUTLAK: Kosongkan projectPath, jangan diisi "." atau ${{ github.workspace }}
+          # Karena secara default, jika dikosongkan, Game-CI akan otomatis membaca halaman root dengan benar
           androidExportType: androidStudioProject 
 
-      # 4. Ambil Folder Hasil Build (unityLibrary) dan simpan sebagai Artifacts
+      # 3. Ambil Folder Hasil Build (unityLibrary) dan simpan sebagai Artifacts
       - name: Upload Unity Library Artifact
         uses: actions/upload-artifact@v4
         with:
