@@ -1,50 +1,16 @@
-name: Build Unity Viewer Module
+name: Ambil File Aktivasi Unity
 
 on:
-  workflow_dispatch: # Memicu tombol "Run workflow" manual di GitHub Actions
+  workflow_dispatch: # Biar bisa diklik manual lewat HP
 
 jobs:
-  build-unity:
-    name: Export Unity Project to Android Library
+  suntik-lisensi:
     runs-on: ubuntu-latest
     steps:
-      # 1. Unduh repositori secara mendalam dengan hak akses root penuh
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          ref: master
-          fetch-depth: 0
-
-      # 2. TRIK KHUSUS: Mengamankan struktur folder agar bisa diakses Docker
-      - name: Fix Directory Permissions & Force Root Path
-        run: |
-          echo "Memperbaiki perizinan sistem berkas untuk Docker container..."
-          chmod -R 777 .
-          mkdir -p ProjectSettings
-          if [ -f "ProjectSettings/ProjectVersion.txt" ]; then
-            echo "ProjectVersion.txt ditemukan secara fisik!"
-          else
-            echo "ProjectVersion.txt tidak ditemukan di root, menyuntikkan versi darurat..."
-            echo "m_EditorVersion: 2021.3.0f1" > ProjectSettings/ProjectVersion.txt
-          fi
-
-      # 3. Jalankan Compiler Game-CI Unity dengan Izin Dirty Build
-      - name: Build Unity Module
+      - uses: actions/checkout@v4
+      - name: Request File ALF
         uses: game-ci/unity-builder@v4
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: Android
-          androidExportType: androidStudioProject
-          projectPath: ./
-          # KUNCI SOLUSI: Mengizinkan kompilasi berjalan meskipun ada file buatan darurat di server
-          allowDirtyBuild: true 
-
-      # 4. Ambil Folder Hasil Build (unityLibrary) dan simpan sebagai Artifacts
-      - name: Upload Unity Library Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: unity-library-output
-          path: build/Android
+          # Perintah khusus untuk memicu pembuatan file lisensi baru
+          versioning: None
