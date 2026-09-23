@@ -1,16 +1,71 @@
-name: Ambil File Aktivasi Unity
+name: Build Final Modding Tools APK
 
 on:
-  workflow_dispatch: # Biar bisa diklik manual lewat HP
+  workflow_dispatch: # Memicu tombol manual dari browser HP
 
 jobs:
-  suntik-lisensi:
+  build-unity:
+    name: Export Unity Project to Android Library
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Request File ALF
+      # 1. Unduh repositori secara mendalam dari branch master hasil Fork
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      # 2. TRIK AMAN: Paksa buat folder dan file versi Unity agar Docker tidak tersesat
+      - name: Force Fix ProjectSettings Directory
+        run: |
+          echo "Memperbaiki perizinan sistem dan menyuntikkan file identitas Unity..."
+          chmod -R 777 .
+          mkdir -p ProjectSettings
+          if [ -f "ProjectSettings/ProjectVersion.txt" ]; then
+            echo "ProjectVersion.txt sudah ada secara fisik."
+          else
+            echo "m_EditorVersion: 2021.3.0f1" > ProjectSettings/ProjectVersion.txt
+          fi
+
+      # 3. Jalankan Ekspor Unity ke format Modul Android Studio (Gradle Project)
+      - name: Export Unity to Android Project
         uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: Android
-          # Perintah khusus untuk memicu pembuatan file lisensi baru
-          versioning: None
+          androidExportType: androidStudioProject
+          allowDirtyBuild: true
+          # PERBAIKAN MUTLAK: Baris projectPath dihapus total agar system Docker 
+          # secara otomatis mengambil folder root terluar tanpa membuat jalur bayangan.
+
+      # 4. TRIK PENYATUAN: Pindahkan folder unityLibrary hasil build ke dalam folder project Android kamu
+      - name: Inject Unity Library to Android Tools
+        run: |
+          echo "Menyuntikkan modul Unity Viewer ke dalam project Android Studio..."
+          mkdir -p AndroidProject/
+          # Memindahkan folder 'unityLibrary' hasil ekspor Game-CI ke dalam subfolder AndroidProject
+          mv build/Android/unityLibrary AndroidProject/unityLibrary
+          
+      # 5. Pasang Java Development Kit (JDK) untuk Compiler Android Studio
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # 6. Jalankan Proses Compile Final APK menggunakan Gradle
+      - name: Build Android APK
+        run: |
+          cd AndroidProject
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      # 7. Unggah File APK Matang yang sudah tertanam Fitur Preview Renderer
+      - name: Upload Final APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Final-Tools-With-Preview-APK
+          path: AndroidProject/app/build/outputs/apk/debug/app-debug.apk
