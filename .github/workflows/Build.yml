@@ -21,14 +21,12 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: Android
-          # PERBAIKAN 1: Mengubah path ke root (titik ".") karena ProjectSettings ada di halaman utama repo Fork
           projectPath: . 
-          # PERBAIKAN 2: Menggunakan format input v4 yang valid untuk mengekspor sebagai proyek Android Studio (.aar/Gradle)
           androidExportType: androidCreateProject 
 
-      # 3. Ambil Folder Hasil Build (unityLibrary) dan simpan sebagai Artifacts
+      # 3. PERBAIKAN: Menggunakan nama pustaka resmi yang benar dari GitHub
       - name: Upload Unity Library Artifact
-        uses: actions/artifacts-upload@v4
+        uses: actions/upload-artifact@v4
         with:
           name: unity-library-output
           path: build/Android
