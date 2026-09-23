@@ -8,14 +8,27 @@ jobs:
     name: Export Unity Project to Android Library
     runs-on: ubuntu-latest
     steps:
-      # 1. PERBAIKAN RADIKAL: Unduh kode dengan mendefinisikan branch 'master' secara absolut
+      # 1. Unduh repositori secara mendalam dengan hak akses root penuh
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          ref: 'master'       # Menegaskan server untuk mengunduh dari branch master bawaan repo Fork
-          fetch-depth: 1      # Mengunduh salinan segar agar file ProjectSettings langsung terbaca
+          ref: master
+          fetch-depth: 0
 
-      # 2. JALANKAN COMPILER GAME-CI UNITY (VERSI RESET PARAMETER)
+      # 2. TRIK KHUSUS: Mengamankan struktur folder & perizinan file agar bisa diakses Docker
+      - name: Fix Directory Permissions & Force Root Path
+        run: |
+          echo "Memperbaiki perizinan sistem berkas untuk Docker container..."
+          chmod -R 777 .
+          mkdir -p ProjectSettings
+          if [ -f "ProjectSettings/ProjectVersion.txt" ]; then
+            echo "ProjectVersion.txt ditemukan secara fisik!"
+          else
+            echo "ProjectVersion.txt hilang, membuat file dummy darurat..."
+            echo "m_EditorVersion: 2021.3.0f1" > ProjectSettings/ProjectVersion.txt
+          fi
+
+      # 3. Jalankan Compiler Game-CI Unity dengan Isolasi Direktori Kerja
       - name: Build Unity Module
         uses: game-ci/unity-builder@v4
         env:
@@ -24,12 +37,10 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: Android
-          androidExportType: androidStudioProject 
-          # Kunci Solusi: Memberikan string kosong pada projectPath memaksa Docker internal 
-          # Game-CI memetakan folder root utama ($GITHUB_WORKSPACE) tanpa membuat folder bayangan.
-          projectPath: "" 
+          androidExportType: androidStudioProject
+          projectPath: ./ # Menggunakan penanda direktori lokal terisolasi secara eksplisit
 
-      # 3. Ambil Folder Hasil Build (unityLibrary) dan simpan sebagai Artifacts
+      # 4. Ambil Folder Hasil Build (unityLibrary) dan simpan sebagai Artifacts
       - name: Upload Unity Library Artifact
         uses: actions/upload-artifact@v4
         with:
