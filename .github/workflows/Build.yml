@@ -22,9 +22,10 @@ jobs:
         with:
           targetPlatform: Android
           projectPath: . 
-          androidExportType: androidCreateProject 
+          # PERBAIKAN: Menggunakan string yang valid sesuai dokumentasi resmi Game-CI v4
+          androidExportType: androidStudioProject 
 
-      # 3. PERBAIKAN: Menggunakan nama pustaka resmi yang benar dari GitHub
+      # 3. Ambil Folder Hasil Build (unityLibrary) dan simpan sebagai Artifacts
       - name: Upload Unity Library Artifact
         uses: actions/upload-artifact@v4
         with:
