@@ -1,0 +1,82 @@
+name: Build Unity and Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  # JOB 1: Build Unity Project into an Android Library (.aar module)
+  build-unity:
+    name: Export Unity Project to Gradle Module
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Cache Unity Project
+        uses: actions/cache@v3
+        with:
+          path: UnityViewerProject/Library
+          key: Library-UnityViewerProject-${{ matrix.targetPlatform }}
+          restore-keys: Library-UnityViewerProject-
+
+      - name: Build Unity to Android Library
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: UnityViewerProject
+          targetPlatform: Android
+          androidExportAsGoogleAndroidProject: true
+
+      - name: Upload Unity Library Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-library-artifact
+          path: build/Android
+
+  # JOB 2: Merge with Android Native App and compile the final APK
+  build-android:
+    name: Build Final Android APK
+    needs: build-unity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Download Unity Library Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: unity-library-artifact
+          path: android-build
+
+      - name: Move Unity Library to Android Project
+        run: |
+          mkdir -p AndroidProject/unityLibrary
+          cp -r android-build/UnityViewerProject/unityLibrary/* AndroidProject/unityLibrary/
+          
+      - name: Grant Execute Permission for Gradle
+        run: chmod +x AndroidProject/gradlew
+        working-directory: AndroidProject
+
+      - name: Build APK with Gradle
+        run: ./gradlew assembleDebug
+        working-directory: AndroidProject
+
+      - name: Upload Final APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Final-Preview-Tools-APK
+          path: AndroidProject/app/build/outputs/apk/debug/app-debug.apk
